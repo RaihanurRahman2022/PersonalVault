@@ -9,10 +9,21 @@ import (
 
 func SetupRoutes(router *gin.Engine, handlers *handlers.Handlers, db *gorm.DB) {
 
+	setupPublicRoutes(router, handlers.Auth)
+
 	api := router.Group("/api")
 	api.Use(middleware.AuthMiddleware(db))
 	{
 		setupUserRoutes(api, handlers.UserHandler)
+	}
+}
+
+// setupPublicRoutes configures public routes that don't require authentication
+func setupPublicRoutes(router *gin.Engine, authHandler *handlers.AuthHandler) {
+	auth := router.Group("/auth")
+	{
+		auth.POST("/login", authHandler.Login)
+		auth.POST("/register", authHandler.Register)
 	}
 }
 

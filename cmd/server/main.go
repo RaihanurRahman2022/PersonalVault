@@ -29,6 +29,9 @@ func main() {
 	}
 
 	log.Println("Started server on port: " + app.Config.Server.Port)
+	if err := app.Router.Run(":" + app.Config.Server.Port); err != nil {
+		log.Fatalf("Failed to start server: %v", err)
+	}
 }
 
 func InitializeApp() (*AppConfig, error) {

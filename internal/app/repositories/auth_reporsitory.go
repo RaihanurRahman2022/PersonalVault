@@ -24,7 +24,7 @@ func NewAuthReporsitory(db *gorm.DB) AuthRepository {
 
 func (r *AuthRepositoryImpl) GetUserByUsername(username string) (*entities.User, error) {
 	var user entities.User
-	err := r.db.Where("username = ?", username).First(&user).Error
+	err := r.db.Where("user_name = ?", username).First(&user).Error
 	if err != nil {
 		return nil, err
 	}
