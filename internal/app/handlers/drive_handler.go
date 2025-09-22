@@ -3,6 +3,7 @@ package handlers
 import (
 	"net/http"
 
+	"github.com/RaihanurRahman2022/PersonalVault/internal/app/entities"
 	"github.com/RaihanurRahman2022/PersonalVault/internal/app/services"
 	"github.com/gin-gonic/gin"
 )
@@ -21,10 +22,14 @@ func (h *DriveHandler) GetRootDrivers(c *gin.Context) {
 	roots, err := h.DriverService.GetRoot()
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to list roots " + err.Error()})
+		return
 	}
 
 	if len(roots) == 0 {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "No valid root directories found"})
+		c.JSON(http.StatusOK, gin.H{
+			"Data":    []entities.RootItems{},
+			"message": "No root directories found",
+		})
 		return
 	}
 

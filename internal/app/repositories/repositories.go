@@ -12,6 +12,6 @@ func NewRepositories(db *gorm.DB) *Repositories {
 	return &Repositories{
 		User:   NewUserRepository(db),
 		Auth:   NewAuthReporsitory(db),
-		Driver: NewDriverRepository(db),
+		Driver: NewDriverRepository(),
 	}
 }

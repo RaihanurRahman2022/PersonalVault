@@ -2,6 +2,7 @@ package services
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"path/filepath"
 	"strings"
@@ -26,12 +27,15 @@ func NewDriverService(DriverRepo repositories.DriverRepository) DriverService {
 }
 
 func (r *DriverServiceImpl) GetRoot() ([]entities.RootItems, error) {
+	log.Println("Service: Getting root directories")
 	roots, err := r.DriverRepo.GetRoots()
 	if err != nil {
-		return nil, err
+		log.Printf("Service: Error getting root directories: %v", err)
+		return nil, fmt.Errorf("failed to get root directories: %w", err)
 	}
 	if len(roots) == 0 {
-		return nil, fmt.Errorf("no valid root directories found")
+		log.Println("Service: No root directories found")
+		return []entities.RootItems{}, nil // Return empty slice instead of error
 	}
 
 	var rootItems []entities.RootItems
@@ -53,5 +57,6 @@ func (r *DriverServiceImpl) GetRoot() ([]entities.RootItems, error) {
 			Modified: info.ModTime(),
 		})
 	}
+	log.Printf("Service: Successfully processed %d root items", len(rootItems))
 	return rootItems, nil
 }

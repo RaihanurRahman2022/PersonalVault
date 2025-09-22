@@ -1,13 +1,13 @@
 package repositories
 
 import (
+	"log"
 	"os"
 	"path/filepath"
 	"runtime"
 	"strings"
 
 	"golang.org/x/sys/windows"
-	"gorm.io/gorm"
 )
 
 type DriverRepository interface {
@@ -15,21 +15,20 @@ type DriverRepository interface {
 }
 
 type DriverRepositoryImpl struct {
-	db *gorm.DB
 }
 
-func NewDriverRepository(db *gorm.DB) DriverRepository {
-	return &DriverRepositoryImpl{
-		db: db,
-	}
+func NewDriverRepository() DriverRepository {
+	return &DriverRepositoryImpl{}
 }
 
 func (r *DriverRepositoryImpl) GetRoots() ([]string, error) {
 	var roots []string
+	log.Printf("Getting root directories for OS: %s", runtime.GOOS)
 
 	if runtime.GOOS == "windows" {
 		Drivers, err := getWindowsDrivers()
 		if err != nil {
+			log.Printf("Error getting Windows drivers: %v", err)
 			return nil, err
 		}
 
@@ -72,30 +71,49 @@ func (r *DriverRepositoryImpl) GetRoots() ([]string, error) {
 		}
 	}
 
+	log.Printf("Found %d unique root directories", len(result))
 	return result, nil
 }
 
 func getWindowsDrivers() ([]string, error) {
-	var Drivers []string
-	buffer := make([]uint16, 1024)
-	n, err := windows.GetLogicalDriveStrings(uint32(len(buffer)/2), &buffer[0])
+	var drivers []string
+
+	// Each drive string is like "C:\\" and strings are concatenated with \0 separators, ending with \0\0.
+	// The API expects the buffer size in UTF-16 code units (not bytes).
+	buf := make([]uint16, 256)
+	n, err := windows.GetLogicalDriveStrings(uint32(len(buf)), &buf[0])
 	if err != nil {
 		return nil, err
 	}
 
-	DriverStrings := windows.UTF16ToString(buffer[:n])
-	if DriverStrings == "" {
+	if n == 0 {
+		// Fallback to C:/ if API returns nothing
 		return []string{"C:/"}, nil
 	}
 
-	for _, d := range strings.Split(DriverStrings, "\x00") {
-		if d != "" {
-			d = strings.ReplaceAll(d, "\\", "/")
-			Drivers = append(Drivers, d)
+	// Ensure we only parse up to n code units returned by the API
+	u := buf[:n]
+
+	// Parse sequences separated by 0 (NUL). There is a trailing double NUL; ignore empties.
+	start := 0
+	for i, v := range u {
+		if v == 0 {
+			if i > start {
+				s := windows.UTF16ToString(u[start:i])
+				if s != "" {
+					s = strings.ReplaceAll(s, "\\", "/")
+					drivers = append(drivers, s)
+				}
+			}
+			start = i + 1
 		}
 	}
 
-	return Drivers, nil
+	log.Printf("Drivers found (parsed): %v", drivers)
+	if len(drivers) == 0 {
+		return []string{"C:/"}, nil
+	}
+	return drivers, nil
 }
 
 // isSafePath ensures the path is safe (e.g., not accessing sensitive system dirs)
