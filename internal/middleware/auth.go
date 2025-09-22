@@ -23,7 +23,7 @@ func AuthMiddleware(db *gorm.DB) gin.HandlerFunc {
 
 		// Invalid Authorization Header
 		parts := strings.Split(authHeader, " ")
-		if len(parts) != 2 || !strings.EqualFold(parts[0], "Bearer") {
+		if len(parts) != 2 {
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
 				"error": "invalid authorization header format",
 			})

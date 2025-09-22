@@ -15,6 +15,7 @@ func SetupRoutes(router *gin.Engine, handlers *handlers.Handlers, db *gorm.DB) {
 	api.Use(middleware.AuthMiddleware(db))
 	{
 		setupUserRoutes(api, handlers.UserHandler)
+		setupDriverRoutes(api, handlers.Driver)
 	}
 }
 
@@ -31,5 +32,12 @@ func setupUserRoutes(api *gin.RouterGroup, userHandler *handlers.UserHandler) {
 	users := api.Group("/users")
 	{
 		users.GET("/me", userHandler.GetUserDetails)
+	}
+}
+
+func setupDriverRoutes(api *gin.RouterGroup, driverHandler *handlers.DriveHandler) {
+	driver := api.Group("/drivers")
+	{
+		driver.GET("/root", driverHandler.GetRootDrivers)
 	}
 }
