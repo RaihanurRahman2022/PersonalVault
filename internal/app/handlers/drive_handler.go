@@ -61,3 +61,26 @@ func (h *DriveHandler) ListPath(c *gin.Context) {
 		"message": "fetch all files successfully",
 	})
 }
+
+func (h *DriveHandler) Downloadfile(c *gin.Context) {
+	var req entities.DownloadRequest
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body " + err.Error()})
+		return
+	}
+
+	if req.Path == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "path is required"})
+		return
+	}
+
+	log.Printf("Handler: Downloading file from path: %s", req.Path)
+	absPath, filename, err := h.DriverService.Downloadfile(req.Path)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to download file " + err.Error()})
+		return
+	}
+
+	c.FileAttachment(absPath, filename)
+}

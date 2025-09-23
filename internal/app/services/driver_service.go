@@ -15,6 +15,7 @@ import (
 type DriverService interface {
 	GetRoot() ([]entities.RootItems, error)
 	ListPath(path string) ([]entities.FileInfo, error)
+	Downloadfile(path string) (string, string, error)
 }
 
 type DriverServiceImpl struct {
@@ -72,4 +73,16 @@ func (r *DriverServiceImpl) ListPath(path string) ([]entities.FileInfo, error) {
 
 	log.Printf("Service: Successfully processed %d files in directory %s", len(files), path)
 	return files, nil
+}
+
+func (r *DriverServiceImpl) Downloadfile(path string) (string, string, error) {
+	log.Printf("Service: Downloading file from path: %s", path)
+	absPath, err := r.DriverRepo.Downloadfile(path)
+	if err != nil {
+		log.Printf("Service: Error downloading file: %v", err)
+		return "", "", fmt.Errorf("failed to download file: %w", err)
+	}
+
+	filename := filepath.Base(absPath)
+	return absPath, filename, nil
 }

@@ -40,5 +40,6 @@ func setupDriverRoutes(api *gin.RouterGroup, driverHandler *handlers.DriveHandle
 	{
 		driver.GET("/root", driverHandler.GetRootDrivers)
 		driver.GET("/list", driverHandler.ListPath)
+		driver.POST("/download", driverHandler.Downloadfile)
 	}
 }

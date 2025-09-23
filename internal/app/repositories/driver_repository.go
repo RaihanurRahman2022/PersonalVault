@@ -15,6 +15,7 @@ import (
 type DriverRepository interface {
 	GetRoots() ([]string, error)
 	ListPath(path string) ([]entities.FileInfo, error)
+	Downloadfile(path string) (string, error)
 }
 
 type DriverRepositoryImpl struct {
@@ -225,4 +226,26 @@ func shouldSkipFile(entry os.DirEntry) bool {
 	}
 
 	return false
+}
+
+func (r *DriverRepositoryImpl) Downloadfile(path string) (string, error) {
+	if !isSafePath(path) {
+		return "", fmt.Errorf("access to path %s is not allowed", path)
+	}
+	info, err := os.Stat(path)
+
+	if err != nil {
+		return "", err
+	}
+
+	if info.IsDir() {
+		return "", fmt.Errorf("folder or directory is not downloadable")
+	}
+
+	absPath, err := filepath.Abs(path)
+	if err != nil {
+		return "", err
+	}
+
+	return absPath, nil
 }
