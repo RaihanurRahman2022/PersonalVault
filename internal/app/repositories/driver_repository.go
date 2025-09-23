@@ -1,17 +1,20 @@
 package repositories
 
 import (
+	"fmt"
 	"log"
 	"os"
 	"path/filepath"
 	"runtime"
 	"strings"
 
+	"github.com/RaihanurRahman2022/PersonalVault/internal/app/entities"
 	"golang.org/x/sys/windows"
 )
 
 type DriverRepository interface {
 	GetRoots() ([]string, error)
+	ListPath(path string) ([]entities.FileInfo, error)
 }
 
 type DriverRepositoryImpl struct {
@@ -116,6 +119,58 @@ func getWindowsDrivers() ([]string, error) {
 	return drivers, nil
 }
 
+func (r *DriverRepositoryImpl) ListPath(path string) ([]entities.FileInfo, error) {
+	log.Printf("Repository: Listing contents of path: %s", path)
+
+	if !isSafePath(path) {
+		return nil, fmt.Errorf("access to path %s is not allowed", path)
+	}
+
+	info, err := os.Stat(path)
+	if err != nil {
+		return nil, fmt.Errorf("path does not exist or is not accessible: %w", err)
+	}
+
+	if !info.IsDir() {
+		return nil, fmt.Errorf("path %s is not a directory", path)
+	}
+
+	entries, err := os.ReadDir(path)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read directory: %w", err)
+	}
+
+	var fileinfos []entities.FileInfo
+
+	for _, entry := range entries {
+		if shouldSkipFile(entry) {
+			continue
+		}
+
+		info, err := entry.Info()
+		if err != nil {
+			return nil, fmt.Errorf("repository: failed to get file info: %w", err)
+		}
+		fileType := "file"
+		if info.IsDir() {
+			fileType = "folder"
+		}
+
+		fullPath := filepath.Join(path, entry.Name())
+		fileinfo := entities.FileInfo{
+			Name:     entry.Name(),
+			Path:     fullPath,
+			Type:     fileType,
+			Size:     info.Size(),
+			Modified: info.ModTime(),
+		}
+		fileinfos = append(fileinfos, fileinfo)
+	}
+
+	log.Printf("Repository: Successfully processed %d files in directory %s", len(fileinfos), path)
+	return fileinfos, nil
+}
+
 // isSafePath ensures the path is safe (e.g., not accessing sensitive system dirs)
 func isSafePath(path string) bool {
 	// Block sensitive paths (customize as needed)
@@ -139,4 +194,35 @@ func isSafePath(path string) bool {
 		}
 	}
 	return true
+}
+
+func shouldSkipFile(entry os.DirEntry) bool {
+	filename := entry.Name()
+
+	if strings.HasPrefix(filename, ".") {
+		return true
+	}
+
+	if strings.HasPrefix(filename, "$") {
+		return true
+	}
+
+	systemFolders := []string{
+		"System Volume Information",
+		"Recovery",
+		"Windows",
+		"Program Files",
+		"Program Files (x86)",
+		"ProgramData",
+		"Boot",
+		"EFI",
+	}
+
+	for _, folder := range systemFolders {
+		if strings.HasPrefix(filename, folder) {
+			return true
+		}
+	}
+
+	return false
 }

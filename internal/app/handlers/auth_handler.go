@@ -56,8 +56,8 @@ func (h *AuthHandler) Login(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"accessToken":  accessToken,
-		"refreshToken": refreshToken,
+		"access_Token":  accessToken,
+		"refresh_Token": refreshToken,
 	})
 }
 
@@ -92,7 +92,7 @@ func (h *AuthHandler) Register(c *gin.Context) {
 		})
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "user registered successfully"})
+	c.JSON(http.StatusCreated, gin.H{"message": "user registered successfully"})
 }
 
 // Helper to get string value from map

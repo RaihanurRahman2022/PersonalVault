@@ -14,6 +14,7 @@ import (
 
 type DriverService interface {
 	GetRoot() ([]entities.RootItems, error)
+	ListPath(path string) ([]entities.FileInfo, error)
 }
 
 type DriverServiceImpl struct {
@@ -59,4 +60,16 @@ func (r *DriverServiceImpl) GetRoot() ([]entities.RootItems, error) {
 	}
 	log.Printf("Service: Successfully processed %d root items", len(rootItems))
 	return rootItems, nil
+}
+
+func (r *DriverServiceImpl) ListPath(path string) ([]entities.FileInfo, error) {
+	log.Printf("Service: Listing contents of path: %s", path)
+	files, err := r.DriverRepo.ListPath(path)
+	if err != nil {
+		log.Printf("Service: Error listing contents of path: %v", err)
+		return nil, fmt.Errorf("failed to list contents of path: %w", err)
+	}
+
+	log.Printf("Service: Successfully processed %d files in directory %s", len(files), path)
+	return files, nil
 }

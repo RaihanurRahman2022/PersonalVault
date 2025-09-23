@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"log"
 	"net/http"
 
 	"github.com/RaihanurRahman2022/PersonalVault/internal/app/entities"
@@ -33,8 +34,30 @@ func (h *DriveHandler) GetRootDrivers(c *gin.Context) {
 		return
 	}
 
+	c.Header("Content-Type", "application/json; charset=utf-8")
 	c.JSON(http.StatusOK, gin.H{
 		"Data":    roots,
 		"message": "fetch all drivers successfully",
+	})
+}
+
+func (h *DriveHandler) ListPath(c *gin.Context) {
+	path := c.Query("path")
+	if path == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "path is required"})
+		return
+	}
+
+	log.Printf("Handler: Listing contents of path: %s", path)
+	files, err := h.DriverService.ListPath(path)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to list path " + err.Error()})
+		return
+	}
+
+	c.Header("Content-Type", "application/json; charset=utf-8")
+	c.JSON(http.StatusOK, gin.H{
+		"Data":    files,
+		"message": "fetch all files successfully",
 	})
 }
