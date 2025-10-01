@@ -3,6 +3,7 @@ package services
 import (
 	"fmt"
 	"log"
+	"mime"
 	"os"
 	"path/filepath"
 	"strings"
@@ -12,10 +13,16 @@ import (
 	"github.com/RaihanurRahman2022/PersonalVault/internal/app/entities"
 )
 
+const previewRangeThreshold = 10 * 1024 * 1024
+
 type DriverService interface {
 	GetRoot() ([]entities.RootItems, error)
 	ListPath(path string) ([]entities.FileInfo, error)
 	Downloadfile(path string) (string, string, error)
+	CreateFolder(path string) error
+
+	PreviewFile(path string) (*entities.PreviewInfo, error)
+	StreamFile(path string) (*entities.PreviewInfo, error)
 }
 
 type DriverServiceImpl struct {
@@ -52,7 +59,7 @@ func (r *DriverServiceImpl) GetRoot() ([]entities.RootItems, error) {
 		}
 
 		rootItems = append(rootItems, entities.RootItems{
-			Name:     name,
+			Name:     name + path,
 			Path:     path,
 			Type:     "directory",
 			Size:     0,
@@ -85,4 +92,66 @@ func (r *DriverServiceImpl) Downloadfile(path string) (string, string, error) {
 
 	filename := filepath.Base(absPath)
 	return absPath, filename, nil
+}
+
+func (r *DriverServiceImpl) CreateFolder(path string) error {
+	log.Printf("Service: Creating folder at path: %s", path)
+	err := r.DriverRepo.CreateFolder(path)
+	if err != nil {
+		log.Printf("Service: Error creating folder: %v", err)
+		return fmt.Errorf("failed to create folder: %w", err)
+	}
+	log.Printf("Service: Successfully created folder at path: %s", path)
+	return nil
+}
+
+func (r *DriverServiceImpl) PreviewFile(path string) (*entities.PreviewInfo, error) {
+	log.Printf("Service: Previewing file at path: %s", path)
+
+	file, fileInfo, absPath, err := r.DriverRepo.OpenFile(path)
+
+	if err != nil {
+		log.Printf("Service: Error opening file: %v", err)
+		return nil, fmt.Errorf("failed to open file: %w", err)
+	}
+
+	mimeType := detectMimeType(absPath)
+
+	shouldUseRange := fileInfo.Size() >= previewRangeThreshold
+
+	return &entities.PreviewInfo{
+		File:           file,
+		Info:           fileInfo,
+		AbsPath:        absPath,
+		MimeType:       mimeType,
+		ShouldUseRange: shouldUseRange,
+	}, nil
+}
+
+func (r *DriverServiceImpl) StreamFile(path string) (*entities.PreviewInfo, error) {
+	log.Printf("Service: Streaming file at path: %s", path)
+
+	file, fileInfo, absPath, err := r.DriverRepo.OpenFile(path)
+
+	if err != nil {
+		log.Printf("Service: Error opening file: %v", err)
+		return nil, fmt.Errorf("failed to open file: %w", err)
+	}
+
+	mimeType := detectMimeType(absPath)
+	return &entities.PreviewInfo{
+		File:           file,
+		Info:           fileInfo,
+		AbsPath:        absPath,
+		MimeType:       mimeType,
+		ShouldUseRange: true,
+	}, nil
+}
+
+func detectMimeType(absPath string) string {
+	ext := strings.ToLower(filepath.Ext(absPath))
+	if ct := mime.TypeByExtension(ext); ct != "" {
+		return ct
+	}
+	return "applicaton/octet-stream"
 }

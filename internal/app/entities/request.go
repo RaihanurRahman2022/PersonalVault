@@ -15,3 +15,7 @@ type LoginRequest struct {
 type DownloadRequest struct {
 	Path string `json:"path" binding:"required"`
 }
+
+type CreateFolderRequest struct {
+	Path string `json:"path" binding:"required"`
+}

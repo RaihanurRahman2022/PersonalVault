@@ -1,6 +1,9 @@
 package entities
 
-import "time"
+import (
+	"os"
+	"time"
+)
 
 type RootItems struct {
 	Name     string    `json:"name"`
@@ -16,4 +19,12 @@ type FileInfo struct {
 	Type     string    `json:"type"`
 	Size     int64     `json:"size"`
 	Modified time.Time `json:"modified"`
+}
+
+type PreviewInfo struct {
+	File           *os.File
+	Info           os.FileInfo
+	AbsPath        string
+	MimeType       string
+	ShouldUseRange bool
 }

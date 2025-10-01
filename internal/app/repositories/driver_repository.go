@@ -16,6 +16,8 @@ type DriverRepository interface {
 	GetRoots() ([]string, error)
 	ListPath(path string) ([]entities.FileInfo, error)
 	Downloadfile(path string) (string, error)
+	CreateFolder(path string) error
+	OpenFile(path string) (*os.File, os.FileInfo, string /*absPath*/, error)
 }
 
 type DriverRepositoryImpl struct {
@@ -248,4 +250,41 @@ func (r *DriverRepositoryImpl) Downloadfile(path string) (string, error) {
 	}
 
 	return absPath, nil
+}
+
+func (r *DriverRepositoryImpl) CreateFolder(path string) error {
+	if !isSafePath(path) {
+		return fmt.Errorf("access to path %s is not allowed", path)
+	}
+	err := os.MkdirAll(path, 0755)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (r *DriverRepositoryImpl) OpenFile(path string) (*os.File, os.FileInfo, string /*absPath*/, error) {
+
+	if !isSafePath(path) {
+		return nil, nil, "", fmt.Errorf("access to path %s is not allowed", path)
+	}
+	absPath, err := filepath.Abs(path)
+	if err != nil {
+		return nil, nil, "", err
+	}
+
+	fileInfo, err := os.Stat(absPath)
+	if err != nil {
+		return nil, nil, "", err
+	}
+
+	if fileInfo.IsDir() {
+		return nil, nil, "", fmt.Errorf("path %s is a directory", path)
+	}
+
+	file, err := os.Open(absPath)
+	if err != nil {
+		return nil, nil, "", err
+	}
+	return file, fileInfo, absPath, nil
 }
