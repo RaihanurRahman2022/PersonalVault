@@ -44,5 +44,6 @@ func setupDriverRoutes(api *gin.RouterGroup, driverHandler *handlers.DriveHandle
 		driver.POST("/create-folder", driverHandler.CreateFolder)
 		driver.GET("/preview", driverHandler.PreviewFile)
 		driver.GET("/stream", driverHandler.StreamFile)
+		driver.POST("/upload", driverHandler.UploadFiles)
 	}
 }

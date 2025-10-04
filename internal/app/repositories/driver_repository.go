@@ -1,8 +1,11 @@
 package repositories
 
 import (
+	"context"
 	"fmt"
+	"io"
 	"log"
+	"mime/multipart"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -14,10 +17,12 @@ import (
 
 type DriverRepository interface {
 	GetRoots() ([]string, error)
-	ListPath(path string) ([]entities.FileInfo, error)
+	ListPath(ctx context.Context, path string) ([]entities.FileInfo, error)
 	Downloadfile(path string) (string, error)
 	CreateFolder(path string) error
 	OpenFile(path string) (*os.File, os.FileInfo, string /*absPath*/, error)
+	EnsureDirExists(path string) error
+	SaveUploadedFile(fh *multipart.FileHeader, dst string, overwrite bool) (int64, error)
 }
 
 type DriverRepositoryImpl struct {
@@ -122,8 +127,15 @@ func getWindowsDrivers() ([]string, error) {
 	return drivers, nil
 }
 
-func (r *DriverRepositoryImpl) ListPath(path string) ([]entities.FileInfo, error) {
+func (r *DriverRepositoryImpl) ListPath(ctx context.Context, path string) ([]entities.FileInfo, error) {
 	log.Printf("Repository: Listing contents of path: %s", path)
+
+	// Check if context is cancelled before proceeding
+	select {
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	default:
+	}
 
 	if !isSafePath(path) {
 		return nil, fmt.Errorf("access to path %s is not allowed", path)
@@ -146,8 +158,19 @@ func (r *DriverRepositoryImpl) ListPath(path string) ([]entities.FileInfo, error
 	var fileinfos []entities.FileInfo
 
 	for _, entry := range entries {
+		select {
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		default:
+		}
 		if shouldSkipFile(entry) {
 			continue
+		}
+
+		select {
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		default:
 		}
 
 		info, err := entry.Info()
@@ -287,4 +310,72 @@ func (r *DriverRepositoryImpl) OpenFile(path string) (*os.File, os.FileInfo, str
 		return nil, nil, "", err
 	}
 	return file, fileInfo, absPath, nil
+}
+func (r *DriverRepositoryImpl) EnsureDirExists(path string) error {
+	if !isSafePath(path) {
+		return fmt.Errorf("access to path %s is not allowed", path)
+	}
+
+	info, err := os.Stat(path)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return os.MkdirAll(path, 0755)
+		}
+		return err
+	}
+
+	if !info.IsDir() {
+		return fmt.Errorf("path %s is not a directory", path)
+	}
+
+	return nil
+
+}
+func (r *DriverRepositoryImpl) SaveUploadedFile(fh *multipart.FileHeader, dst string, overwrite bool) (int64, error) {
+	if !isSafePath(dst) {
+		return 0, fmt.Errorf("access to path %s is not allowed", dst)
+	}
+
+	absDst, err := filepath.Abs(dst)
+	if err != nil {
+		return 0, err
+	}
+
+	if !overwrite {
+		if _, err := os.Stat(absDst); err == nil {
+			return 0, fmt.Errorf("file already exists")
+		}
+	}
+
+	src, err := fh.Open()
+	if err != nil {
+		return 0, err
+	}
+
+	defer src.Close()
+
+	if err := os.MkdirAll(filepath.Dir(absDst), 0755); err != nil {
+		return 0, err
+	}
+
+	flags := os.O_CREATE | os.O_WRONLY
+
+	if overwrite {
+		flags |= os.O_TRUNC
+	} else {
+		flags |= os.O_EXCL
+	}
+
+	out, err := os.OpenFile(absDst, flags, 0644)
+	if err != nil {
+		return 0, err
+	}
+
+	defer out.Close()
+	written, err := io.Copy(out, src)
+	if err != nil {
+		return 0, err
+	}
+
+	return written, nil
 }

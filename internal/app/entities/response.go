@@ -28,3 +28,10 @@ type PreviewInfo struct {
 	MimeType       string
 	ShouldUseRange bool
 }
+
+type UploadResult struct {
+	Name  string `json:"name"`
+	Path  string `json:"path,omitempty"`
+	Size  int64  `json:"size,omitempty"`
+	Error string `json:"error,omitempty"`
+}

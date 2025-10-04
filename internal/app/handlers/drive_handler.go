@@ -1,13 +1,16 @@
 package handlers
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"log"
+	"mime/multipart"
 	"net/http"
 	"os"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/RaihanurRahman2022/PersonalVault/internal/app/entities"
 	"github.com/RaihanurRahman2022/PersonalVault/internal/app/services"
@@ -47,6 +50,10 @@ func (h *DriveHandler) GetRootDrivers(c *gin.Context) {
 }
 
 func (h *DriveHandler) ListPath(c *gin.Context) {
+	ctx := c.Request.Context()
+	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
+
 	path := c.Query("path")
 	if path == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "path is required"})
@@ -54,7 +61,7 @@ func (h *DriveHandler) ListPath(c *gin.Context) {
 	}
 
 	log.Printf("Handler: Listing contents of path: %s", path)
-	files, err := h.DriverService.ListPath(path)
+	files, err := h.DriverService.ListPath(ctx, path)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to list path " + err.Error()})
 		return
@@ -181,7 +188,8 @@ func (h *DriveHandler) serveWithRange(c *gin.Context, file *os.File, info os.Fil
 	c.Header("Content-Length", strconv.FormatInt(contentLength, 10))
 	c.Status(http.StatusPartialContent)
 
-	_, err = io.CopyN(c.Writer, file, contentLength)
+	buffer := make([]byte, 32*1024)
+	_, err = io.CopyBuffer(c.Writer, file, buffer)
 	if err != nil {
 		log.Printf("Error serving file: %v", err)
 		return
@@ -243,4 +251,112 @@ func (h *DriveHandler) parseRangeHeader(c *gin.Context, rangeHeader string, file
 	}
 
 	return start, end, nil
+}
+
+// extractFilenameFromHeader extracts the filename from Content-Disposition header
+func extractFilenameFromHeader(header map[string][]string) string {
+	if contentDisposition, exists := header["Content-Disposition"]; exists && len(contentDisposition) > 0 {
+		// Parse Content-Disposition header like: form-data; name="files"; filename="Handle/handle.exe"
+		disposition := contentDisposition[0]
+		log.Printf("Handler: Parsing disposition: %s", disposition)
+		if strings.Contains(disposition, "filename=") {
+			// Extract filename from the header
+			parts := strings.Split(disposition, "filename=")
+			log.Printf("Handler: Split parts: %v", parts)
+			if len(parts) > 1 {
+				filename := strings.Trim(parts[1], `"`)
+				log.Printf("Handler: Extracted filename: %s", filename)
+				return filename
+			}
+		}
+	}
+	return ""
+}
+
+func (h *DriveHandler) UploadFiles(c *gin.Context) {
+	dstPath := c.Query("path")
+	if dstPath == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "destination path is required"})
+		return
+	}
+
+	uploadType := c.DefaultPostForm("upload_type", "files")
+	overwrite := strings.ToLower(c.DefaultPostForm("overwrite", "false")) == "true"
+
+	form, err := c.MultipartForm()
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "failed to parse multipart form: " + err.Error()})
+		return
+	}
+
+	var results []entities.UploadResult
+
+	if uploadType == "folder" {
+		results, err = h.handleFolderUpload(dstPath, form, overwrite)
+	} else {
+		results, err = h.handleFileUpload(c, dstPath, form, overwrite)
+	}
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to upload files: " + err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"results": results,
+		"message": "files uploaded successfully",
+	})
+
+}
+
+func (h *DriveHandler) handleFileUpload(c *gin.Context, destPath string, form *multipart.Form, overwrite bool) ([]entities.UploadResult, error) {
+	files := form.File["files"]
+	if len(files) == 0 {
+		if f, err := c.FormFile("file"); err == nil {
+			files = []*multipart.FileHeader{f}
+		}
+	}
+	if len(files) == 0 {
+		return nil, fmt.Errorf("no files provided")
+	}
+
+	// Extract correct filename from Content-Disposition header for file uploads too
+	for i, file := range files {
+		if file.Header != nil {
+			extractedFilename := extractFilenameFromHeader(file.Header)
+			if extractedFilename != "" {
+				log.Printf("Handler: File upload %d - Extracted filename: %s", i, extractedFilename)
+				file.Filename = extractedFilename
+			}
+		}
+	}
+
+	return h.DriverService.UploadFiles(destPath, files, overwrite)
+}
+
+func (h *DriveHandler) handleFolderUpload(destPath string, form *multipart.Form, overwrite bool) ([]entities.UploadResult, error) {
+	files := form.File["files"]
+	if len(files) == 0 {
+		return nil, fmt.Errorf("no files provided")
+	}
+
+	// Debug: log the raw filename from multipart form
+	for i, file := range files {
+		log.Printf("Handler: Raw file %d - Filename: %s, Size: %d", i, file.Filename, file.Size)
+		// Log the header to see what's in the Content-Disposition
+		if file.Header != nil {
+			// Extract filename from Content-Disposition header
+			extractedFilename := extractFilenameFromHeader(file.Header)
+			if extractedFilename != "" {
+				log.Printf("Handler: Extracted filename from header: %s", extractedFilename)
+				// Update the filename to preserve the folder structure
+				file.Filename = extractedFilename
+				log.Printf("Handler: Updated filename to: %s", file.Filename)
+			} else {
+				log.Printf("Handler: No filename extracted for file %d", i)
+			}
+		}
+	}
+
+	return h.DriverService.UploadFolder(destPath, files, overwrite)
 }
