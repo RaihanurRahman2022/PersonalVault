@@ -9,6 +9,7 @@ import (
 	"github.com/RaihanurRahman2022/PersonalVault/internal/app/routes"
 	"github.com/RaihanurRahman2022/PersonalVault/internal/app/services"
 	"github.com/RaihanurRahman2022/PersonalVault/internal/config"
+	"github.com/RaihanurRahman2022/PersonalVault/monitoring"
 	"github.com/RaihanurRahman2022/PersonalVault/pkg/database"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
@@ -20,6 +21,7 @@ type AppConfig struct {
 	Config   *config.Config
 	Router   *gin.Engine
 	Handlers *handlers.Handlers
+	metrics  *monitoring.Metrics
 }
 
 func main() {
@@ -42,6 +44,21 @@ func InitializeApp() (*AppConfig, error) {
 	cfg, err := config.LoadConfig()
 	if err != nil {
 		return nil, err
+	}
+
+	// Initialize telemetry (optional - will work without Jaeger)
+	telemetryConfig := monitoring.TelemetryConfig{
+		ServiceName:    "personal-vault-server",
+		ServiceVersion: "1.0.0",
+		Environment:    "development",
+		JaegerEndpoint: "http://localhost:14268/api/traces",
+	}
+
+	tp, mp, err := monitoring.InitTelemetry(telemetryConfig)
+	if err != nil {
+		log.Printf("Warning: Failed to initialize telemetry: %v", err)
+	} else {
+		defer monitoring.ShutdownTelemetry(tp, mp)
 	}
 
 	// Initialize database
