@@ -10,7 +10,6 @@ import (
 func SetupRoutes(router *gin.Engine, handlers *handlers.Handlers, db *gorm.DB) {
 
 	setupPublicRoutes(router, handlers.Auth)
-	setupMonitoringRoutes(router, handlers.Metrics) // public monitoring endpoints
 
 	api := router.Group("/api")
 	api.Use(middleware.AuthMiddleware(db))
@@ -18,13 +17,6 @@ func SetupRoutes(router *gin.Engine, handlers *handlers.Handlers, db *gorm.DB) {
 		setupUserRoutes(api, handlers.UserHandler)
 		setupDriverRoutes(api, handlers.Driver)
 	}
-}
-
-// public monitoring endpoints (no auth)
-func setupMonitoringRoutes(router *gin.Engine, m *handlers.MetricsHandler) {
-	router.GET("/metrics", m.GetMetrics)
-	router.GET("/health", m.HealthCheck)
-	router.GET("/ready", m.HealthCheck)
 }
 
 // setupPublicRoutes configures public routes that don't require authentication

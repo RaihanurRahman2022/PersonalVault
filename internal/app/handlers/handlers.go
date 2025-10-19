@@ -6,7 +6,6 @@ type Handlers struct {
 	UserHandler *UserHandler
 	Auth        *AuthHandler
 	Driver      *DriveHandler
-	Metrics     *MetricsHandler
 }
 
 func NewHandlers(srvc *services.Services) *Handlers {
@@ -14,6 +13,5 @@ func NewHandlers(srvc *services.Services) *Handlers {
 		UserHandler: NewUserhandler(srvc.User),
 		Auth:        NewAuthHandler(srvc.Auth),
 		Driver:      NewDriverHandler(srvc.Driver),
-		Metrics:     NewMetricsHandler(),
 	}
 }

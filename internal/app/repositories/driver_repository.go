@@ -199,6 +199,8 @@ func (r *DriverRepositoryImpl) ListPath(ctx context.Context, path string) ([]ent
 
 // isSafePath ensures the path is safe (e.g., not accessing sensitive system dirs)
 func isSafePath(path string) bool {
+	log.Printf("Repository: Checking if path is safe: %s", path)
+
 	// Block sensitive paths (customize as needed)
 	sensitivePaths := []string{
 		"/etc",
@@ -216,9 +218,11 @@ func isSafePath(path string) bool {
 	}
 	for _, sp := range sensitivePaths {
 		if strings.HasPrefix(strings.ToLower(path), strings.ToLower(sp)) {
+			log.Printf("Repository: Path %s is blocked by sensitive path %s", path, sp)
 			return false
 		}
 	}
+	log.Printf("Repository: Path %s is considered safe", path)
 	return true
 }
 
@@ -312,38 +316,58 @@ func (r *DriverRepositoryImpl) OpenFile(path string) (*os.File, os.FileInfo, str
 	return file, fileInfo, absPath, nil
 }
 func (r *DriverRepositoryImpl) EnsureDirExists(path string) error {
+	log.Printf("Repository: EnsureDirExists called for path: %s", path)
+
 	if !isSafePath(path) {
+		log.Printf("Repository: Path %s is not considered safe", path)
 		return fmt.Errorf("access to path %s is not allowed", path)
 	}
 
 	info, err := os.Stat(path)
 	if err != nil {
 		if os.IsNotExist(err) {
-			return os.MkdirAll(path, 0755)
+			log.Printf("Repository: Directory does not exist, creating: %s", path)
+			err := os.MkdirAll(path, 0755)
+			if err != nil {
+				log.Printf("Repository: Error creating directory %s: %v", path, err)
+				return err
+			}
+			log.Printf("Repository: Successfully created directory: %s", path)
+			return nil
 		}
+		log.Printf("Repository: Error checking directory %s: %v", path, err)
 		return err
 	}
 
 	if !info.IsDir() {
+		log.Printf("Repository: Path %s exists but is not a directory", path)
 		return fmt.Errorf("path %s is not a directory", path)
 	}
 
+	log.Printf("Repository: Directory %s already exists", path)
 	return nil
 
 }
 func (r *DriverRepositoryImpl) SaveUploadedFile(fh *multipart.FileHeader, dst string, overwrite bool) (int64, error) {
+	log.Printf("Repository: Attempting to save file %s to path: %s", fh.Filename, dst)
+
 	if !isSafePath(dst) {
+		log.Printf("Repository: Path %s is not considered safe", dst)
 		return 0, fmt.Errorf("access to path %s is not allowed", dst)
 	}
 
 	absDst, err := filepath.Abs(dst)
 	if err != nil {
+		log.Printf("Repository: Error getting absolute path for %s: %v", dst, err)
 		return 0, err
 	}
 
+	log.Printf("Repository: Absolute destination path: %s", absDst)
+
 	if !overwrite {
 		if _, err := os.Stat(absDst); err == nil {
-			return 0, fmt.Errorf("file already exists")
+			log.Printf("Repository: File already exists and overwrite is disabled: %s", absDst)
+			return 0, fmt.Errorf("file already exists: %s", fh.Filename)
 		}
 	}
 
@@ -354,7 +378,10 @@ func (r *DriverRepositoryImpl) SaveUploadedFile(fh *multipart.FileHeader, dst st
 
 	defer src.Close()
 
-	if err := os.MkdirAll(filepath.Dir(absDst), 0755); err != nil {
+	parentDir := filepath.Dir(absDst)
+	log.Printf("Repository: Creating parent directory: %s", parentDir)
+	if err := os.MkdirAll(parentDir, 0755); err != nil {
+		log.Printf("Repository: Error creating parent directory %s: %v", parentDir, err)
 		return 0, err
 	}
 
@@ -366,16 +393,21 @@ func (r *DriverRepositoryImpl) SaveUploadedFile(fh *multipart.FileHeader, dst st
 		flags |= os.O_EXCL
 	}
 
+	log.Printf("Repository: Opening file %s with flags %d", absDst, flags)
 	out, err := os.OpenFile(absDst, flags, 0644)
 	if err != nil {
+		log.Printf("Repository: Error opening file %s: %v", absDst, err)
 		return 0, err
 	}
 
 	defer out.Close()
+	log.Printf("Repository: Starting to copy file content")
 	written, err := io.Copy(out, src)
 	if err != nil {
+		log.Printf("Repository: Error copying file content: %v", err)
 		return 0, err
 	}
 
+	log.Printf("Repository: Successfully saved file %s, written %d bytes", absDst, written)
 	return written, nil
 }

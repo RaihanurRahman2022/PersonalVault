@@ -188,9 +188,12 @@ func detectMimeType(absPath string) string {
 func (r *DriverServiceImpl) UploadFiles(destPath string, files []*multipart.FileHeader, overwrite bool) ([]entities.UploadResult, error) {
 	log.Printf("Service: Uploading %d files to path: %s", len(files), destPath)
 
+	log.Printf("Service: Ensuring directory exists: %s", destPath)
 	if err := r.DriverRepo.EnsureDirExists(destPath); err != nil {
+		log.Printf("Service: Error ensuring directory exists: %v", err)
 		return nil, fmt.Errorf("failed to ensure directory exists: %w", err)
 	}
+	log.Printf("Service: Directory exists or was created successfully")
 
 	var wg sync.WaitGroup
 	result := make([]entities.UploadResult, len(files))
@@ -200,13 +203,17 @@ func (r *DriverServiceImpl) UploadFiles(destPath string, files []*multipart.File
 		go func(index int, fh *multipart.FileHeader) {
 			defer wg.Done()
 
+			log.Printf("Service: Processing file %d: %s", index, fh.Filename)
 			res := entities.UploadResult{Name: fh.Filename}
 			dst := filepath.Join(destPath, fh.Filename)
+			log.Printf("Service: Destination path for file %d: %s", index, dst)
 
 			written, err := r.DriverRepo.SaveUploadedFile(fh, dst, overwrite)
 			if err != nil {
+				log.Printf("Service: Error saving file %d: %v", index, err)
 				res.Error = err.Error()
 			} else {
+				log.Printf("Service: Successfully saved file %d, written %d bytes", index, written)
 				res.Path = dst
 				res.Size = written
 			}
@@ -218,19 +225,24 @@ func (r *DriverServiceImpl) UploadFiles(destPath string, files []*multipart.File
 
 	wg.Wait() // wait until all files processed
 
-	allFailed := true
+	// Count successful and failed uploads
+	successCount := 0
+	failedCount := 0
 	for _, res := range result {
 		if res.Error == "" {
-			allFailed = false
-			break
+			successCount++
+		} else {
+			failedCount++
 		}
 	}
 
-	if allFailed {
-		return nil, fmt.Errorf("all files failed to upload")
-	}
+	log.Printf("Service: Upload completed - %d successful, %d failed", successCount, failedCount)
 
-	log.Printf("Service: Successfully uploaded %d files to path: %s", len(result), destPath)
+	// Return results even if some files failed
+	// Only return error if ALL files failed
+	if successCount == 0 {
+		return result, fmt.Errorf("all files failed to upload")
+	}
 
 	return result, nil
 }
