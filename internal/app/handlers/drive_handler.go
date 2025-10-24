@@ -27,6 +27,15 @@ func NewDriverHandler(srvc services.DriverService) *DriveHandler {
 	}
 }
 
+// GetRootDrivers godoc
+// @Summary      Get root drivers
+// @Description  Get all root drivers
+// @Tags         Drive
+// @Accept       json
+// @Produce      json
+// @Success      200 {object} map[string]any "Root drivers"
+// @Failure      500 {object} map[string]string "Internal server error"
+// @Router       /drive/root [get]
 func (h *DriveHandler) GetRootDrivers(c *gin.Context) {
 	roots, err := h.DriverService.GetRoot()
 	if err != nil {
@@ -49,6 +58,17 @@ func (h *DriveHandler) GetRootDrivers(c *gin.Context) {
 	})
 }
 
+// ListPath godoc
+// @Summary      List path contents
+// @Description  List all files and directories in a given path
+// @Tags         Drive
+// @Accept       json
+// @Produce      json
+// @Param        path query string true "Path to list contents"
+// @Success      200 {object} map[string]any "Path contents"
+// @Failure      400 {object} map[string]string "Invalid request"
+// @Failure      500 {object} map[string]string "Internal server error"
+// @Router       /drive/list [get]
 func (h *DriveHandler) ListPath(c *gin.Context) {
 	ctx := c.Request.Context()
 	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
@@ -74,6 +94,17 @@ func (h *DriveHandler) ListPath(c *gin.Context) {
 	})
 }
 
+// Downloadfile godoc
+// @Summary      Download file
+// @Description  Download a file from a given path
+// @Tags         Drive
+// @Accept       json
+// @Produce      json
+// @Param        request body entities.DownloadRequest true "Download request"
+// @Success      200 {object} map[string]string "File downloaded successfully"
+// @Failure      400 {object} map[string]string "Invalid request"
+// @Failure      500 {object} map[string]string "Internal server error"
+// @Router       /drive/download [post]
 func (h *DriveHandler) Downloadfile(c *gin.Context) {
 	var req entities.DownloadRequest
 
@@ -97,6 +128,17 @@ func (h *DriveHandler) Downloadfile(c *gin.Context) {
 	c.FileAttachment(absPath, filename)
 }
 
+// CreateFolder godoc
+// @Summary      Create folder
+// @Description  Create a new folder at a given path
+// @Tags         Drive
+// @Accept       json
+// @Produce      json
+// @Param        request body entities.CreateFolderRequest true "Create folder request"
+// @Success      200 {object} map[string]string "Folder created successfully"
+// @Failure      400 {object} map[string]string "Invalid request"
+// @Failure      500 {object} map[string]string "Internal server error"
+// @Router       /drive/create-folder [post]
 func (h *DriveHandler) CreateFolder(c *gin.Context) {
 	var req entities.CreateFolderRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -120,6 +162,17 @@ func (h *DriveHandler) CreateFolder(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Folder created successfully"})
 }
 
+// PreviewFile godoc
+// @Summary      Preview file
+// @Description  Preview a file at a given path
+// @Tags         Drive
+// @Accept       json
+// @Produce      json
+// @Param        path query string true "Path to preview file"
+// @Success      200 {object} map[string]string "File previewed successfully"
+// @Failure      400 {object} map[string]string "Invalid request"
+// @Failure      500 {object} map[string]string "Internal server error"
+// @Router       /drive/preview [get]
 func (h *DriveHandler) PreviewFile(c *gin.Context) {
 	path := c.Query("path")
 	if path == "" {
@@ -147,6 +200,17 @@ func (h *DriveHandler) PreviewFile(c *gin.Context) {
 	h.serveWithRange(c, previewInfo.File, previewInfo.Info)
 }
 
+// StreamFile godoc
+// @Summary      Stream file
+// @Description  Stream a file at a given path
+// @Tags         Drive
+// @Accept       json
+// @Produce      json
+// @Param        path query string true "Path to stream file"
+// @Success      200 {object} map[string]string "File streamed successfully"
+// @Failure      400 {object} map[string]string "Invalid request"
+// @Failure      500 {object} map[string]string "Internal server error"
+// @Router       /drive/stream [get]
 func (h *DriveHandler) StreamFile(c *gin.Context) {
 	path := c.Query("path")
 	if path == "" {
@@ -253,7 +317,6 @@ func (h *DriveHandler) parseRangeHeader(c *gin.Context, rangeHeader string, file
 	return start, end, nil
 }
 
-// extractFilenameFromHeader extracts the filename from Content-Disposition header
 func extractFilenameFromHeader(header map[string][]string) string {
 	if contentDisposition, exists := header["Content-Disposition"]; exists && len(contentDisposition) > 0 {
 		// Parse Content-Disposition header like: form-data; name="files"; filename="Handle/handle.exe"
@@ -273,6 +336,19 @@ func extractFilenameFromHeader(header map[string][]string) string {
 	return ""
 }
 
+// UploadFiles godoc
+// @Summary      Upload files
+// @Description  Upload files to a given path
+// @Tags         Drive
+// @Accept       json
+// @Produce      json
+// @Param        path query string true "Path to upload files"
+// @Param        upload_type formData string true "Upload type (files or folder)"
+// @Param        overwrite formData string true "Overwrite files (true or false)"
+// @Success      200 {object} map[string]any "Upload results"
+// @Failure      400 {object} map[string]string "Invalid request"
+// @Failure      500 {object} map[string]string "Internal server error"
+// @Router       /drive/upload-files [post]
 func (h *DriveHandler) UploadFiles(c *gin.Context) {
 	dstPath := c.Query("path")
 	if dstPath == "" {

@@ -4,10 +4,14 @@ import (
 	"github.com/RaihanurRahman2022/PersonalVault/internal/app/handlers"
 	"github.com/RaihanurRahman2022/PersonalVault/internal/middleware"
 	"github.com/gin-gonic/gin"
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 	"gorm.io/gorm"
 )
 
 func SetupRoutes(router *gin.Engine, handlers *handlers.Handlers, db *gorm.DB) {
+
+	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
 	setupPublicRoutes(router, handlers.Auth)
 

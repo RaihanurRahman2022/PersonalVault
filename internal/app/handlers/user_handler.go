@@ -18,6 +18,18 @@ func NewUserhandler(userService services.UserService) *UserHandler {
 	}
 }
 
+// GetUserDetails godoc
+// @Summary      Get user details
+// @Description  Get user details by user ID
+// @Tags         User
+// @Accept       json
+// @Produce      json
+// @Param        user_id path string true "User ID"
+// @Success      200 {object} entities.User "User details"
+// @Failure      401 {object} map[string]string "User not found in context"
+// @Failure      404 {object} map[string]string "User not found"
+// @Failure      500 {object} map[string]string "Internal server error"
+// @Router       /user/details/{user_id} [get]
 func (h *UserHandler) GetUserDetails(c *gin.Context) {
 	userID, exists := c.Get("user_id")
 	if !exists {

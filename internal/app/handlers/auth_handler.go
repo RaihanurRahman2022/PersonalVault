@@ -20,6 +20,19 @@ func NewAuthHandler(authService services.AuthService) *AuthHandler {
 	}
 }
 
+// Login godoc
+// @Summary      User login
+// @Description  Authenticate user and return access and refresh tokens
+// @Tags         Authentication
+// @Accept       json
+// @Produce      json
+// @Param        request body entities.LoginRequest true "Login credentials"
+// @Success      200 {object} map[string]string "Login successful"
+// @Failure      400 {object} map[string]string "Invalid request"
+// @Failure      401 {object} map[string]string "Invalid credentials"
+// @Failure      403 {object} map[string]string "User account inactive"
+// @Failure      500 {object} map[string]string "Internal server error"
+// @Router       /auth/login [post]
 func (h *AuthHandler) Login(c *gin.Context) {
 	//Read the Raw body
 	body, _ := c.GetRawData()
@@ -61,6 +74,17 @@ func (h *AuthHandler) Login(c *gin.Context) {
 	})
 }
 
+// Register godoc
+// @Summary      User registration
+// @Description  Register a new user account
+// @Tags         Authentication
+// @Accept       json
+// @Produce      json
+// @Param        request body entities.RegisterRequest true "User registration data"
+// @Success      201 {object} map[string]string "User registered successfully"
+// @Failure      400 {object} map[string]string "Invalid request"
+// @Failure      500 {object} map[string]string "Internal server error"
+// @Router       /auth/register [post]
 func (h *AuthHandler) Register(c *gin.Context) {
 
 	body, _ := c.GetRawData()

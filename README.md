@@ -69,6 +69,126 @@ pkg/database/        # Database connection and setup
 #### User Management
 - `GET /api/users/me` - Get current user details
 
+## 📖 API Documentation with Swagger
+
+The Personal Vault API includes comprehensive, interactive documentation powered by Swagger/OpenAPI. This makes it easy to understand, test, and integrate with the API.
+
+### 🔍 Accessing the Documentation
+
+Once the server is running, you can access the interactive API documentation at:
+
+- **Swagger UI**: `http://localhost:8080/swagger/index.html`
+- **Swagger JSON**: `http://localhost:8080/swagger/doc.json`
+
+### 🎯 Features of the Swagger Documentation
+
+#### Interactive API Explorer
+- **Try it out**: Test API endpoints directly from the browser
+- **Authentication**: Built-in JWT token authentication support
+- **Request/Response Examples**: See exactly what data to send and expect
+- **Error Handling**: View all possible error responses and status codes
+
+#### Organized by Functional Areas
+- **🔐 Authentication**: Login and registration endpoints
+- **👤 Users**: User profile management
+- **📁 File Management**: Complete file operations (upload, download, preview, etc.)
+
+#### Advanced Features
+- **JWT Authentication**: Click "Authorize" button to add your Bearer token
+- **File Upload Testing**: Test multipart file uploads directly in the UI
+- **Parameter Validation**: See required fields and data types
+- **Response Schemas**: Understand the exact structure of API responses
+
+### 🛠️ How to Use the Documentation
+
+1. **Start the Server**:
+   ```bash
+   go run cmd/server/main.go
+   ```
+
+2. **Open Swagger UI**: Navigate to `http://localhost:8080/swagger/index.html`
+
+3. **Test Authentication**:
+   - Use the `/auth/register` endpoint to create a new user
+   - Use the `/auth/login` endpoint to get a JWT token
+   - Click the "Authorize" button and enter: `Bearer YOUR_JWT_TOKEN`
+
+4. **Test Protected Endpoints**:
+   - All `/api/*` endpoints require authentication
+   - Use the JWT token from step 3 to access protected routes
+
+### 🔧 Generating Documentation
+
+The Swagger documentation is automatically generated from code annotations. To regenerate it:
+
+```bash
+# Install Swagger CLI (if not already installed)
+go install github.com/swaggo/swag/cmd/swag@latest
+
+# Generate documentation
+swag init -g cmd/server/main.go -o docs
+```
+
+### 📝 Adding Documentation to New Endpoints
+
+When adding new API endpoints, include Swagger annotations:
+
+```go
+// GetUserProfile godoc
+// @Summary      Get user profile
+// @Description  Retrieve the current user's profile information
+// @Tags         Users
+// @Accept       json
+// @Produce      json
+// @Security     BearerAuth
+// @Success      200 {object} map[string]interface{} "User profile retrieved successfully"
+// @Failure      401 {object} map[string]string "Unauthorized"
+// @Failure      404 {object} map[string]string "User not found"
+// @Router       /api/users/profile [get]
+func (h *UserHandler) GetUserProfile(c *gin.Context) {
+    // Handler implementation
+}
+```
+
+### 🎨 Swagger Annotation Reference
+
+#### Basic Annotations
+- `@Summary` - Brief endpoint description
+- `@Description` - Detailed endpoint description
+- `@Tags` - Groups endpoints by functionality
+- `@Accept` - Request content type (json, multipart/form-data, etc.)
+- `@Produce` - Response content type
+- `@Router` - Route path and HTTP method
+
+#### Parameter Annotations
+- `@Param` - Request parameters (query, body, path, header)
+- `@Success` - Success response with status code and schema
+- `@Failure` - Error responses with status codes
+- `@Security` - Authentication requirements
+
+#### Example Usage
+```go
+// @Param        request body entities.LoginRequest true "Login credentials"
+// @Success      200 {object} map[string]string "Login successful"
+// @Failure      400 {object} map[string]string "Invalid request"
+// @Failure      401 {object} map[string]string "Invalid credentials"
+```
+
+### 🚀 Benefits for Development
+
+1. **Frontend Integration**: Frontend developers can easily understand API contracts
+2. **Testing**: QA teams can test APIs without writing code
+3. **Documentation**: Always up-to-date API documentation
+4. **Client Generation**: Generate client SDKs in multiple languages
+5. **API Validation**: Ensure API implementation matches documentation
+
+### 🔗 Related Tools
+
+- **Swagger Editor**: Online editor for OpenAPI specifications
+- **Postman**: Import Swagger JSON for API testing
+- **Insomnia**: Alternative API testing tool with Swagger support
+- **OpenAPI Generator**: Generate client SDKs from Swagger specs
+
 ## 🚀 Getting Started
 
 ### Prerequisites

@@ -1,0 +1,455 @@
+basePath: /
+definitions:
+  entities.CreateFolderRequest:
+    properties:
+      path:
+        example: /documents/new_folder
+        type: string
+    required:
+    - path
+    type: object
+  entities.DownloadRequest:
+    properties:
+      path:
+        example: /documents/file.pdf
+        type: string
+    required:
+    - path
+    type: object
+  entities.LoginRequest:
+    properties:
+      password:
+        example: securePassword123
+        type: string
+      username:
+        example: john_doe
+        type: string
+    required:
+    - password
+    - username
+    type: object
+  entities.RegisterRequest:
+    properties:
+      first_name:
+        example: John
+        maxLength: 50
+        minLength: 2
+        type: string
+      last_name:
+        example: Doe
+        maxLength: 50
+        minLength: 2
+        type: string
+      password:
+        example: securePassword123
+        type: string
+      username:
+        example: john_doe
+        type: string
+    required:
+    - first_name
+    - last_name
+    - password
+    - username
+    type: object
+  entities.User:
+    properties:
+      first_name:
+        example: John
+        type: string
+      id:
+        example: 550e8400-e29b-41d4-a716-446655440000
+        type: string
+      last_name:
+        example: Doe
+        type: string
+      username:
+        example: john_doe
+        type: string
+    type: object
+host: localhost:8080
+info:
+  contact:
+    email: support@swagger.io
+    name: API Support
+    url: http://www.swagger.io/support
+  description: A secure personal file storage and management API
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+  termsOfService: http://swagger.io/terms/
+  title: Personal Vault API
+  version: "1.0"
+paths:
+  /auth/login:
+    post:
+      consumes:
+      - application/json
+      description: Authenticate user and return access and refresh tokens
+      parameters:
+      - description: Login credentials
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/entities.LoginRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Login successful
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Invalid request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Invalid credentials
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: User account inactive
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: User login
+      tags:
+      - Authentication
+  /auth/register:
+    post:
+      consumes:
+      - application/json
+      description: Register a new user account
+      parameters:
+      - description: User registration data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/entities.RegisterRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: User registered successfully
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Invalid request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: User registration
+      tags:
+      - Authentication
+  /drive/create-folder:
+    post:
+      consumes:
+      - application/json
+      description: Create a new folder at a given path
+      parameters:
+      - description: Create folder request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/entities.CreateFolderRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Folder created successfully
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Invalid request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Create folder
+      tags:
+      - Drive
+  /drive/download:
+    post:
+      consumes:
+      - application/json
+      description: Download a file from a given path
+      parameters:
+      - description: Download request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/entities.DownloadRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: File downloaded successfully
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Invalid request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Download file
+      tags:
+      - Drive
+  /drive/list:
+    get:
+      consumes:
+      - application/json
+      description: List all files and directories in a given path
+      parameters:
+      - description: Path to list contents
+        in: query
+        name: path
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Path contents
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: List path contents
+      tags:
+      - Drive
+  /drive/preview:
+    get:
+      consumes:
+      - application/json
+      description: Preview a file at a given path
+      parameters:
+      - description: Path to preview file
+        in: query
+        name: path
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: File previewed successfully
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Invalid request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Preview file
+      tags:
+      - Drive
+  /drive/root:
+    get:
+      consumes:
+      - application/json
+      description: Get all root drivers
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Root drivers
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get root drivers
+      tags:
+      - Drive
+  /drive/stream:
+    get:
+      consumes:
+      - application/json
+      description: Stream a file at a given path
+      parameters:
+      - description: Path to stream file
+        in: query
+        name: path
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: File streamed successfully
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Invalid request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Stream file
+      tags:
+      - Drive
+  /drive/upload-files:
+    post:
+      consumes:
+      - application/json
+      description: Upload files to a given path
+      parameters:
+      - description: Path to upload files
+        in: query
+        name: path
+        required: true
+        type: string
+      - description: Upload type (files or folder)
+        in: formData
+        name: upload_type
+        required: true
+        type: string
+      - description: Overwrite files (true or false)
+        in: formData
+        name: overwrite
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Upload results
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Upload files
+      tags:
+      - Drive
+  /user/details/{user_id}:
+    get:
+      consumes:
+      - application/json
+      description: Get user details by user ID
+      parameters:
+      - description: User ID
+        in: path
+        name: user_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: User details
+          schema:
+            $ref: '#/definitions/entities.User'
+        "401":
+          description: User not found in context
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: User not found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get user details
+      tags:
+      - User
+securityDefinitions:
+  BearerAuth:
+    description: Type "Bearer" followed by a space and JWT token.
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"

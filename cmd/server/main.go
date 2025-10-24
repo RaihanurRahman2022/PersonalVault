@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 
+	_ "github.com/RaihanurRahman2022/PersonalVault/docs"
 	"github.com/RaihanurRahman2022/PersonalVault/internal/app/handlers"
 	"github.com/RaihanurRahman2022/PersonalVault/internal/app/repositories"
 	"github.com/RaihanurRahman2022/PersonalVault/internal/app/routes"
@@ -21,6 +22,26 @@ type AppConfig struct {
 	Router   *gin.Engine
 	Handlers *handlers.Handlers
 }
+
+// @title           Personal Vault API
+// @version         1.0
+// @description     A secure personal file storage and management API
+// @termsOfService  http://swagger.io/terms/
+
+// @contact.name   API Support
+// @contact.url    http://www.swagger.io/support
+// @contact.email  support@swagger.io
+
+// @license.name  MIT
+// @license.url   https://opensource.org/licenses/MIT
+
+// @host      localhost:8080
+// @BasePath  /
+
+// @securityDefinitions.apikey BearerAuth
+// @in header
+// @name Authorization
+// @description Type "Bearer" followed by a space and JWT token.
 
 func main() {
 	app, err := InitializeApp()
